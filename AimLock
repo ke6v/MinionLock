@@ -1,115 +1,119 @@
-local new = { 
-    main = { 
-        Mario = true,
-        Prediction = 0.13,
-        Part = "HumanoidRootPart", -- Head, UpperTorso, HumanoidRootPart, LowerTorso, RightFoot, LeftFoot, RightArm, LeftArm 
-        Key = "c",
-        Notifications = true,
-        AirshotFunc = true
+
+--[[
+nigga                                             
+]]
+local Settings = {
+    AimLock = {
+        Enabled = true,
+        Aimlockkey = "q",
+        Prediction = 0.135,
+        Aimpart = 'HumanoidRootPart',
+        Notifications = false
     },
-    Tracer = { 
-        TracerThickness = 3.5, -- made by thusky
-        TracerTransparency = 1, -- made by thusky
-        TracerColor = Color3.fromRGB(153, 50, 204) -- made by thusky
+    Settings = {
+        Thickness = 3.5,
+        Transparency = 1,
+        Color = Color3.fromRGB(153, 50, 204),
+        FOV = true
     }
+
 }
 
-
-local CurrentCamera = game:GetService "Workspace".CurrentCamera
-local Mouse = game.Players.LocalPlayer:GetMouse()
-local RunService = game:GetService("RunService")
-local Plr = game.Players.LocalPlayer
-local Line = Drawing.new("Line")
+local CurrentCamera = game:GetService("Workspace").CurrentCamera
 local Inset = game:GetService("GuiService"):GetGuiInset().Y
+local RunService = game:GetService("RunService")
+
+local Mouse = game.Players.LocalPlayer:GetMouse()
+local LocalPlayer = game.Players.LocalPlayer
+
+local Line = Drawing.new("Line")
+local Circle = Drawing.new("Circle")
+
+local Plr
 
 Mouse.KeyDown:Connect(function(KeyPressed)
-    if KeyPressed == (new.main.Key) then
-        if new.main.Mario == true then
-            new.main.Mario = false
-            if new.main.Notifications == true then
-                Plr = FindClosestUser()
+    if KeyPressed == (Settings.AimLock.Aimlockkey) then
+        if Settings.AimLock.Enabled == true then
+            Settings.AimLock.Enabled = false
+            if Settings.AimLock.Notifications == true then
+                Plr = FindClosestPlayer()
                 game.StarterGui:SetCore("SendNotification", {
-                    Title = "<3",
-                    Text = "No longer locked on"
+                    Title = "Chicken",
+                    Text = "Unlocked"
                 })
             end
         else
-            Plr = FindClosestUser()
-            new.main.Mario = true
-            if new.main.Notifications == true then
+            Plr = FindClosestPlayer()
+            Settings.AimLock.Enabled = true
+            if Settings.AimLock.Notifications == true then
                 game.StarterGui:SetCore("SendNotification", {
-                    Title = "<3",
-                    Text = "Locked on to:" .. tostring(Plr.Character.Humanoid.DisplayName)
+                    Title = "Chicken",
+                    Text = "Locked On :  " .. tostring(Plr.Character.Humanoid.DisplayName)
                 })
             end
         end
     end
 end)
 
-function FindClosestUser()
-    local closestPlayer
-    local shortestDistance = math.huge
+function FindClosestPlayer()
+    local ClosestDistance, ClosestPlayer = math.huge, nil;
+    for _, Player in next, game:GetService("Players"):GetPlayers() do
+        local ISNTKNOCKED = Player.Character:WaitForChild("BodyEffects")["K.O"].Value ~= true
+        local ISNTGRABBED = Player.Character:FindFirstChild("GRABBING_COINSTRAINT") == nil
 
-    for i, v in pairs(game.Players:GetPlayers()) do
-        if v ~= game.Players.LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") and
-            v.Character.Humanoid.Health ~= 0 and v.Character:FindFirstChild("HumanoidRootPart") then
-            local pos = CurrentCamera:WorldToViewportPoint(v.Character.PrimaryPart.Position)
-            local magnitude = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).magnitude
-            if magnitude < shortestDistance then
-                closestPlayer = v
-                shortestDistance = magnitude
+        if Player ~= LocalPlayer then
+            local Character = Player.Character
+            if Character and Character.Humanoid.Health > 1 and ISNTKNOCKED and ISNTGRABBED then
+                local Position, IsVisibleOnViewPort = CurrentCamera:WorldToViewportPoint(Character.HumanoidRootPart
+                                                                                             .Position)
+                if IsVisibleOnViewPort then
+                    local Distance = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(Position.X, Position.Y)).Magnitude
+                    if Distance < ClosestDistance then
+                        ClosestPlayer = Player
+                        ClosestDistance = Distance
+                    end
+                end
             end
         end
     end
-    return closestPlayer
+    return ClosestPlayer, ClosestDistance
 end
 
-
-
-
-RunService.Stepped:connect(function()
-    if new.main.Mario == true then
-        local Vector = CurrentCamera:WorldToViewportPoint(Plr.Character[new.main.Part].Position +
-                                                              (Plr.Character.HumanoidRootPart.Velocity *
-                                                                  new.main.Prediction))
-        Line.Color = new.Tracer.TracerColor                                                                          -- made by thusky
-        Line.Thickness = new.Tracer.TracerThickness
-        Line.Transparency = new.Tracer.TracerTransparency
- 
-
+RunService.Heartbeat:connect(function()
+    if Settings.AimLock.Enabled == true then
+        local Vector = CurrentCamera:WorldToViewportPoint(Plr.Character[Settings.AimLock.Aimpart].Position +
+                                                              (Plr.Character[Settings.AimLock.Aimpart].Velocity *
+                                                              Settings.AimLock.Prediction))
+        Line.Color = Settings.Settings.Color
+        Line.Transparency = Settings.Settings .Transparency
+        Line.Thickness = Settings.Settings .Thickness
         Line.From = Vector2.new(Mouse.X, Mouse.Y + Inset)
         Line.To = Vector2.new(Vector.X, Vector.Y)
         Line.Visible = true
+        Circle.Position = Vector2.new(Mouse.X, Mouse.Y + Inset)
+        Circle.Visible = Settings.Settings.FOV
+        Circle.Thickness = 1.5
+        Circle.Thickness = 2
+        Circle.Radius = 60
+        Circle.Color = Settings.Settings.Color
+    elseif Settings.AimLock.FOV == true then
+        Circle.Visible = true
     else
+        Circle.Visible = false
         Line.Visible = false
-
     end
 end)
-
 
 local mt = getrawmetatable(game)
 local old = mt.__namecall
 setreadonly(mt, false)
 mt.__namecall = newcclosure(function(...)
     local args = {...}
-    if new.main.Mario and getnamecallmethod() == "FireServer" and args[2] == "UpdateMousePos" then
-        args[3] = Plr.Character[new.main.Part].Position +
-                      (Plr.Character[new.main.Part].Velocity * new.main.Prediction)
+    if Settings.AimLock.Enabled and getnamecallmethod() == "FireServer" and args[2] == "UpdateMousePos" then
+        args[3] = Plr.Character[Settings.AimLock.Aimpart].Position +
+                      (Plr.Character[Settings.AimLock.Aimpart].Velocity * Settings.AimLock.Prediction)
+
         return old(unpack(args))
     end
     return old(...)
 end)
-
-if new.main.AirshotFunc == true then
-    if Plr.Character.Humanoid.Jump == true and Plr.Character.Humanoid.FloorMaterial == Enum.Material.Air then
-        settings.main.Part = "RightFoot"
-    else
-        Plr.Character:WaitForChild("Humanoid").StateChanged:Connect(function(old,new)
-            if new == Enum.HumanoidStateType.Freefall then
-                settings.main.Part = "RightFoot"
-            else
-                settings.main.Part = "LowerTorso"
-            end
-        end)
-    end
-end
